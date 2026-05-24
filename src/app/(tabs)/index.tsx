@@ -10,6 +10,7 @@ import { useTransactionStore } from "@/stores/useTransactionStore";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
+import { useStreaks } from "@/hooks/useStreaks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo } from "react";
 import {
@@ -31,11 +32,13 @@ export default function HomeScreen() {
   const { budgets } = useBudgetStore();
   const { categories } = useCategoryStore();
   const { refreshAllData } = useDatabase();
+  const { recordActivity } = useStreaks();
 
   const { colors } = useAppTheme();
 
   useEffect(() => {
     refreshAllData();
+    recordActivity();
   }, [refreshAllData]);
 
   const currentMonthName = format(new Date(), "MMMM yyyy");
@@ -136,7 +139,7 @@ export default function HomeScreen() {
           <Text
             style={[styles.transactionDate, { color: colors.textSecondary }]}
           >
-            {format(new Date(item.date), "MM-dd-yyyy")}
+            {format(new Date(item.date), "do MMM yyyy")}
           </Text>
         </View>
       </View>

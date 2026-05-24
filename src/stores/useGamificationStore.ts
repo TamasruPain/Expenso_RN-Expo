@@ -9,12 +9,15 @@ interface GamificationState {
   resetStreak: () => void;
   awardBadge: (badge: Badge) => void;
   checkStreak: () => void;
+  setBadges: (badges: Badge[]) => void;
 }
 
 export const useGamificationStore = create<GamificationState>((set, get) => ({
   streakCount: 0,
   badges: [],
   lastActiveDate: null,
+
+  setBadges: (badges) => set({ badges }),
 
   incrementStreak: () => {
     const today = new Date().toISOString().split("T")[0];

@@ -15,7 +15,7 @@ export function useSupabase() {
   const client = useMemo(() => {
     return createClient(supabaseUrl, supabaseAnonKey, {
       async accessToken() {
-        return session?.getToken() ?? null;
+        return session?.getToken({ template: "supabase" }) ?? null;
       },
     });
   }, [session]);

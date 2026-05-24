@@ -1,10 +1,15 @@
+import { AddGoalModal } from "@/components/goal/AddGoalModal";
 import { Button } from "@/components/ui/Button";
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useDatabase } from "@/hooks/useDatabase";
 import { getIoniconsName } from "@/lib/icons";
+import { useGoalStore } from "@/stores/useGoalStore";
+import { Goal } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -14,40 +19,23 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Mock Goals Data
-const GOALS = [
-  {
-    id: "1",
-    name: "New iPhone 17",
-    current: 45000,
-    target: 85000,
-    icon: "logo-apple",
-    color: "#1A1A2E",
-  },
-  {
-    id: "2",
-    name: "Europe Trip",
-    current: 120000,
-    target: 300000,
-    icon: "airplane",
-    color: "#7C5CFC",
-  },
-  {
-    id: "3",
-    name: "Emergency Fund",
-    current: 50000,
-    target: 200000,
-    icon: "shield-checkmark",
-    color: "#00D09E",
-  },
-];
-
 export default function GoalsScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const { fetchGoals } = useDatabase();
+  const { goals } = useGoalStore();
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const renderGoalItem = ({ item }: { item: (typeof GOALS)[0] }) => {
-    const percent = Math.min(100, (item.current / item.target) * 100);
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
+
+  const totalSavings = goals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
+
+  const renderGoalItem = ({ item }: { item: Goal }) => {
+    const current = item.current_amount || 0;
+    const target = item.target_amount || 1; // Avoid division by zero
+    const percent = Math.min(100, (current / target) * 100);
 
     return (
       <TouchableOpacity
@@ -62,7 +50,7 @@ export default function GoalsScreen() {
             ]}
           >
             <Ionicons
-              name={getIoniconsName(item.icon)}
+              name={getIoniconsName(item.icon || "flag")}
               size={24}
               color={colors.primary}
             />
@@ -72,7 +60,7 @@ export default function GoalsScreen() {
               {item.name}
             </Text>
             <Text style={[styles.goalTarget, { color: colors.textSecondary }]}>
-              Target: ₹{item.target.toLocaleString()}
+              Target: ₹{target.toLocaleString()}
             </Text>
           </View>
           <Ionicons
@@ -85,7 +73,7 @@ export default function GoalsScreen() {
         <View style={styles.progressSection}>
           <View style={styles.progressLabels}>
             <Text style={[styles.progressText, { color: colors.text }]}>
-              ₹{item.current.toLocaleString()}
+              ₹{current.toLocaleString()}
             </Text>
             <Text style={[styles.percentText, { color: colors.primary }]}>
               {percent.toFixed(0)}%
@@ -126,18 +114,23 @@ export default function GoalsScreen() {
           </Text>
         </View>
 
-        <View style={[styles.summaryCard, { backgroundColor: colors.primary }]}>
+        <LinearGradient
+          colors={["#8854ff", "#8fb0ff"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.summaryCard}
+        >
           <Text style={styles.summaryLabel}>Total Savings</Text>
-          <Text style={styles.summaryValue}>₹ 2,15,000</Text>
+          <Text style={styles.summaryValue}>₹ {totalSavings.toLocaleString()}</Text>
           <View style={styles.summaryFooter}>
             <Text style={styles.summaryStats}>
-              Across {GOALS.length} active goals
+              Across {goals.length} active goals
             </Text>
           </View>
-        </View>
+        </LinearGradient>
 
         <FlatList
-          data={GOALS}
+          data={goals}
           renderItem={renderGoalItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
@@ -147,14 +140,24 @@ export default function GoalsScreen() {
               Active Goals
             </Text>
           }
+          ListEmptyComponent={
+            <Text style={{ textAlign: "center", color: colors.textSecondary, marginTop: 40 }}>
+              No active goals. Create one below!
+            </Text>
+          }
         />
 
         <Button
           title="Create New Goal"
-          onPress={() => {}}
+          onPress={() => setModalVisible(true)}
           style={styles.createButton}
         />
       </View>
+
+      <AddGoalModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -220,13 +223,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   goalCard: {
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.lg,
+    padding: 12,
+    borderRadius: 16,
     marginBottom: Theme.spacing.md,
-    elevation: 2,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 6,
   },
   cardHeader: {

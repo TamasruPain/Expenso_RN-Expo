@@ -1,6 +1,14 @@
 import { Badge } from "@/types";
 
-export const BADGES: Badge[] = [
+export interface BadgeDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+}
+
+export const BADGES: BadgeDefinition[] = [
   {
     id: "1",
     name: "Early Bird",
@@ -46,3 +54,4 @@ export const BADGES: Badge[] = [
 ];
 
 export const getBadgeById = (id: string) => BADGES.find((b) => b.id === id);
+

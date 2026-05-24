@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useDatabase } from "@/hooks/useDatabase";
 import { getIoniconsName } from "@/lib/icons";
+import { useGoalStore } from "@/stores/useGoalStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
+  Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,23 +21,96 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GoalDetailScreen() {
   const router = useRouter();
-  useLocalSearchParams();
-  const { colors } = useAppTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors, isDark } = useAppTheme();
+  const { updateGoal, deleteGoal } = useDatabase();
+  const { goals } = useGoalStore();
 
-  // Mock data for a single goal
-  const goal = {
-    id: "2",
-    name: "Europe Trip",
-    current: 120000,
-    target: 300000,
-    icon: "airplane",
-    color: "#7C5CFC",
-    startDate: "01 Jan 2026",
-    estimatedEnd: "31 Aug 2026",
-    monthlyAvg: 20000,
+  const goal = goals.find((g) => g.id === id);
+
+  // Savings Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<"add" | "withdraw">("add");
+  const [amount, setAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!goal) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Goal Details</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Goal not found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const current = goal.current_amount || 0;
+  const target = goal.target_amount || 1;
+  const percent = Math.min(100, (current / target) * 100);
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Goal",
+      `Are you sure you want to delete the goal "${goal.name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const success = await deleteGoal(goal.id);
+            if (success) {
+              router.back();
+            } else {
+              Alert.alert("Error", "Failed to delete goal.");
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const percent = Math.min(100, (goal.current / goal.target) * 100);
+  const handleOpenSavingsModal = (type: "add" | "withdraw") => {
+    setModalType(type);
+    setAmount("");
+    setModalVisible(true);
+  };
+
+  const handleSavingsAction = async () => {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    setIsSubmitting(true);
+    let newAmount = current;
+    if (modalType === "add") {
+      newAmount += numAmount;
+    } else {
+      newAmount = Math.max(0, current - numAmount);
+    }
+
+    try {
+      const success = await updateGoal(goal.id, { current_amount: newAmount });
+      if (success) {
+        setModalVisible(false);
+      } else {
+        Alert.alert("Error", "Failed to update savings.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView
@@ -48,8 +126,8 @@ export default function GoalDetailScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           Goal Details
         </Text>
-        <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
+        <TouchableOpacity style={styles.editButton} onPress={handleDelete}>
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
         </TouchableOpacity>
       </View>
 
@@ -65,7 +143,7 @@ export default function GoalDetailScreen() {
             ]}
           >
             <Ionicons
-              name={getIoniconsName(goal.icon)}
+              name={getIoniconsName(goal.icon || "flag")}
               size={48}
               color={colors.primary}
             />
@@ -73,8 +151,8 @@ export default function GoalDetailScreen() {
           <Text style={[styles.goalName, { color: colors.text }]}>
             {goal.name}
           </Text>
-          <Text style={[styles.goalStatus, { color: colors.accent }]}>
-            On Track ✨
+          <Text style={[styles.goalStatus, { color: percent >= 100 ? colors.accent : colors.primary }]}>
+            {percent >= 100 ? "Completed! 🎉" : "Active Saving ✨"}
           </Text>
         </View>
 
@@ -107,7 +185,7 @@ export default function GoalDetailScreen() {
                 Saved
               </Text>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                ₹{goal.current.toLocaleString()}
+                ₹{current.toLocaleString()}
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -115,58 +193,77 @@ export default function GoalDetailScreen() {
                 Target
               </Text>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                ₹{goal.target.toLocaleString()}
+                ₹{target.toLocaleString()}
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-                Started
-              </Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>
-                {goal.startDate}
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-                Est. Completion
-              </Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>
-                {goal.estimatedEnd}
+        {percent < 100 && (
+          <View style={styles.infoSection}>
+            <View
+              style={[
+                styles.suggestionBox,
+                { backgroundColor: colors.primarySurface },
+              ]}
+            >
+              <Ionicons name="bulb-outline" size={20} color={colors.primary} />
+              <Text style={[styles.suggestionText, { color: colors.text }]}>
+                You are ₹{(target - current).toLocaleString()} away from your target. Keep going!
               </Text>
             </View>
           </View>
-
-          <View
-            style={[
-              styles.suggestionBox,
-              { backgroundColor: colors.primarySurface },
-            ]}
-          >
-            <Ionicons name="bulb-outline" size={20} color={colors.primary} />
-            <Text style={[styles.suggestionText, { color: colors.text }]}>
-              Saving ₹2,500 more per month will help you reach this goal 2
-              months earlier!
-            </Text>
-          </View>
-        </View>
+        )}
 
         <Button
           title="Add Savings"
-          onPress={() => {}}
+          onPress={() => handleOpenSavingsModal("add")}
           style={styles.actionButton}
         />
         <Button
           title="Withdraw"
           variant="outline"
-          onPress={() => {}}
+          onPress={() => handleOpenSavingsModal("withdraw")}
           style={styles.actionButton}
         />
       </ScrollView>
+
+      {/* Savings Dialog Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {modalType === "add" ? "Add Savings" : "Withdraw Savings"}
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+              {modalType === "add"
+                ? "How much would you like to save today?"
+                : "How much would you like to withdraw?"}
+            </Text>
+
+            <Input
+              label="Amount (₹)"
+              placeholder="0.00"
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
+              containerStyle={styles.modalInput}
+              autoFocus
+            />
+
+            <Button
+              title={modalType === "add" ? "Confirm Add" : "Confirm Withdraw"}
+              onPress={handleSavingsAction}
+              loading={isSubmitting}
+              style={styles.modalButton}
+            />
+
+            <TouchableOpacity onPress={() => setModalVisible(false)} disabled={isSubmitting}>
+              <Text style={[styles.cancelText, { color: colors.danger }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -274,23 +371,6 @@ const styles = StyleSheet.create({
   infoSection: {
     marginBottom: Theme.spacing.xxl,
   },
-  infoRow: {
-    flexDirection: "row",
-    marginBottom: Theme.spacing.lg,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   suggestionBox: {
     flexDirection: "row",
     padding: Theme.spacing.md,
@@ -307,5 +387,41 @@ const styles = StyleSheet.create({
   actionButton: {
     width: "100%",
     marginBottom: Theme.spacing.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    padding: Theme.spacing.xl,
+    borderTopLeftRadius: Theme.radius.xl,
+    borderTopRightRadius: Theme.radius.xl,
+    minHeight: 320,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: Theme.typography.size.xxl,
+    fontWeight: "700",
+    marginBottom: Theme.spacing.sm,
+  },
+  modalSubtitle: {
+    fontSize: Theme.typography.size.md,
+    textAlign: "center",
+    marginBottom: Theme.spacing.xl,
+    lineHeight: 22,
+  },
+  modalInput: {
+    marginBottom: Theme.spacing.xl,
+    width: "100%",
+  },
+  modalButton: {
+    width: "100%",
+    marginBottom: Theme.spacing.lg,
+  },
+  cancelText: {
+    fontSize: Theme.typography.size.md,
+    fontWeight: "600",
+    padding: Theme.spacing.md,
   },
 });

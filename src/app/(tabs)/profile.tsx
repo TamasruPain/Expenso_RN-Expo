@@ -3,6 +3,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useBudgetStore } from "@/stores/useBudgetStore";
 import { useGamificationStore } from "@/stores/useGamificationStore";
+import { useGoalStore } from "@/stores/useGoalStore";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useTransactionStore } from "@/stores/useTransactionStore";
 import { useAuth } from "@clerk/clerk-expo";
@@ -24,10 +25,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { streakCount } = useGamificationStore();
+  const { badges, streakCount } = useGamificationStore();
+  const { goals } = useGoalStore();
   const { signOut } = useAuth();
   const { transactions } = useTransactionStore();
   const { budgets } = useBudgetStore();
+
+  const totalSavings = useMemo(() => {
+    return goals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
+  }, [goals]);
+
+  const rank = useMemo(() => {
+    const earnedCount = badges.length;
+    if (earnedCount >= 5) return "Gold";
+    if (earnedCount >= 3) return "Silver";
+    if (earnedCount >= 1) return "Bronze";
+    return "Novice";
+  }, [badges]);
 
   const { theme, setTheme } = useThemeStore();
   const { colors, isDark } = useAppTheme();
@@ -142,15 +156,89 @@ export default function ProfileScreen() {
 
         {/* ─── Streak Cards ─── */}
         <View style={styles.streakRow}>
+          {/* Day Streak Card */}
           <View
             style={[
-              styles.streakCard,
+              styles.streakCardCompact,
               {
                 backgroundColor: colors.card,
                 shadowColor: isDark ? "#000" : "#7C5CFC",
               },
             ]}
           >
+            <View
+              style={[
+                styles.streakIconCompact,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(124,92,252,0.2)"
+                    : colors.primarySurface,
+                },
+              ]}
+            >
+              <Ionicons name="flame" size={14} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.streakLabelCompact, { color: colors.textSecondary }]}>
+                Day Streak
+              </Text>
+              <Text style={[styles.streakValueCompact, { color: colors.text }]}>
+                {streakCount}
+              </Text>
+            </View>
+          </View>
+
+          {/* Best Streak Card */}
+          <View
+            style={[
+              styles.streakCardCompact,
+              {
+                backgroundColor: colors.card,
+                shadowColor: isDark ? "#000" : "#7C5CFC",
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.streakIconCompact,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(0,208,158,0.15)"
+                    : "#E8FFF6",
+                },
+              ]}
+            >
+              <Ionicons name="trophy" size={14} color={colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.streakLabelCompact, { color: colors.textSecondary }]}>
+                Best Streak
+              </Text>
+              <Text style={[styles.streakValueCompact, { color: colors.text }]}>
+                23
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ─── Savings & Achievements Cards ─── */}
+        <View style={[styles.streakRow, { marginTop: -4, marginBottom: Theme.spacing.lg }]}>
+          {/* Savings Goals Card */}
+          <TouchableOpacity
+            style={[
+              styles.streakCard,
+              styles.clickableCard,
+              {
+                backgroundColor: colors.card,
+                shadowColor: isDark ? "#000" : "#7C5CFC",
+              },
+            ]}
+            onPress={() => router.push("/goal")}
+            activeOpacity={0.7}
+          >
+            <View style={styles.arrowContainer}>
+              <Ionicons name="arrow-forward" size={14} color="#3B82F6" />
+            </View>
             <View
               style={{
                 alignItems: "center",
@@ -163,30 +251,38 @@ export default function ProfileScreen() {
                   styles.streakIcon,
                   {
                     backgroundColor: isDark
-                      ? "rgba(124,92,252,0.2)"
+                      ? "rgba(124,92,252,0.15)"
                       : colors.primarySurface,
                   },
                 ]}
               >
-                <Ionicons name="flame" size={18} color={colors.primary} />
+                <Ionicons name="flag" size={18} color={colors.primary} />
               </View>
               <Text style={[styles.streakValue, { color: colors.text }]}>
-                {streakCount}
+                {user?.currency_symbol || "$"}{totalSavings.toLocaleString()}
               </Text>
             </View>
             <Text style={[styles.streakLabel, { color: colors.textSecondary }]}>
-              Day Streak
+              {goals.length} Savings Goal{goals.length !== 1 ? "s" : ""}
             </Text>
-          </View>
-          <View
+          </TouchableOpacity>
+
+          {/* Badges Card */}
+          <TouchableOpacity
             style={[
               styles.streakCard,
+              styles.clickableCard,
               {
                 backgroundColor: colors.card,
                 shadowColor: isDark ? "#000" : "#7C5CFC",
               },
             ]}
+            onPress={() => router.push("/badges")}
+            activeOpacity={0.7}
           >
+            <View style={styles.arrowContainer}>
+              <Ionicons name="arrow-forward" size={14} color="#3B82F6" />
+            </View>
             <View
               style={{
                 alignItems: "center",
@@ -199,21 +295,21 @@ export default function ProfileScreen() {
                   styles.streakIcon,
                   {
                     backgroundColor: isDark
-                      ? "rgba(0,208,158,0.15)"
-                      : "#E8FFF6",
+                      ? "rgba(255,184,0,0.15)"
+                      : "#FFF8E7",
                   },
                 ]}
               >
-                <Ionicons name="trophy" size={18} color={colors.accent} />
+                <Ionicons name="ribbon" size={18} color="#FFB800" />
               </View>
               <Text style={[styles.streakValue, { color: colors.text }]}>
-                23
+                {badges.length}/6
               </Text>
             </View>
             <Text style={[styles.streakLabel, { color: colors.textSecondary }]}>
-              Best Streak
+              {rank} Rank
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ─── Theme Selector ─── */}
@@ -480,6 +576,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     marginTop: 2,
+  },
+  streakCardCompact: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Theme.radius.md,
+    gap: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  streakIconCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  streakValueCompact: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: -2,
+  },
+  streakLabelCompact: {
+    fontSize: 9,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  clickableCard: {
+    borderWidth: 1.5,
+    borderColor: "#3B82F6",
+  },
+  arrowContainer: {
+    position: "absolute",
+    top: 8,
+    right: 8,
   },
 
   // ─── Section ──────────────────────────────────────────────

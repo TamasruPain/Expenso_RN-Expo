@@ -1,9 +1,16 @@
+import { BADGES } from "@/constants/badges";
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useDatabase } from "@/hooks/useDatabase";
+import { useBudgetStore } from "@/stores/useBudgetStore";
+import { useGamificationStore } from "@/stores/useGamificationStore";
+import { useTransactionStore } from "@/stores/useTransactionStore";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,67 +19,125 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Mock Badges Data
-const BADGES = [
-  {
-    id: "1",
-    name: "Early Bird",
-    description: "Added first transaction before 8 AM",
-    icon: "sunny",
-    color: "#FFB800",
-    earned: true,
-  },
-  {
-    id: "2",
-    name: "Budget Master",
-    description: "Stayed under budget for 3 consecutive months",
-    icon: "trophy",
-    color: "#7C5CFC",
-    earned: true,
-  },
-  {
-    id: "3",
-    name: "Super Saver",
-    description: "Saved 30% of monthly income",
-    icon: "wallet",
-    color: "#00D09E",
-    earned: true,
-  },
-  {
-    id: "4",
-    name: "Night Owl",
-    description: "Recorded an expense after midnight",
-    icon: "moon",
-    color: "#3F51B5",
-    earned: true,
-  },
-  {
-    id: "5",
-    name: "Analyst",
-    description: "Checked analytics 7 days in a row",
-    icon: "trending-up",
-    color: "#E91E63",
-    earned: false,
-  },
-  {
-    id: "6",
-    name: "Planner",
-    description: "Set 5 different category budgets",
-    icon: "calendar",
-    color: "#FF5722",
-    earned: false,
-  },
-];
-
 export default function BadgesScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const { refreshAllData, awardBadge } = useDatabase();
+  const { badges, streakCount } = useGamificationStore();
+  const { transactions } = useTransactionStore();
+  const { budgets } = useBudgetStore();
 
-  const renderBadge = ({ item }: { item: (typeof BADGES)[0] }) => (
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const initAndCheckBadges = async () => {
+      try {
+        await refreshAllData();
+
+        // Retrieve the latest fetched data directly from Zustand stores
+        const currentBadges = useGamificationStore.getState().badges;
+        const currentTransactions = useTransactionStore.getState().transactions;
+        const currentBudgets = useBudgetStore.getState().budgets;
+        const currentStreak = useGamificationStore.getState().streakCount;
+
+        const earnedTypes = new Set(currentBadges.map((b) => b.badge_type));
+
+        // Rule 1: Early Bird
+        const isEarlyBird = currentTransactions.some((t) => {
+          if (!t.date) return false;
+          const hrs = new Date(t.date).getHours();
+          return hrs < 8;
+        });
+
+        // Rule 2: Budget Master
+        const isBudgetMaster =
+          currentBudgets.length > 0 &&
+          currentBudgets.every((b) => (b.spent || 0) <= b.amount);
+
+        // Rule 3: Super Saver
+        const monthlyTotals: { [key: string]: { income: number; expense: number } } = {};
+        currentTransactions.forEach((t) => {
+          if (!t.date || typeof t.date !== "string") return;
+          const monthKey = t.date.substring(0, 7);
+          if (!monthlyTotals[monthKey]) {
+            monthlyTotals[monthKey] = { income: 0, expense: 0 };
+          }
+          if (t.type === "income") {
+            monthlyTotals[monthKey].income += t.amount;
+          } else if (t.type === "expense") {
+            monthlyTotals[monthKey].expense += t.amount;
+          }
+        });
+        const isSuperSaver = Object.values(monthlyTotals).some(
+          (m) => m.income > 0 && (m.income - m.expense) / m.income >= 0.3
+        );
+
+        // Rule 4: Night Owl
+        const isNightOwl = currentTransactions.some((t) => {
+          if (!t.date) return false;
+          const hrs = new Date(t.date).getHours();
+          return t.type === "expense" && hrs < 5;
+        });
+
+        // Rule 5: Analyst
+        const isAnalyst = currentStreak >= 7;
+
+        // Rule 6: Planner
+        const isPlanner = currentBudgets.length >= 5;
+
+        const rules = [
+          { id: "1", condition: isEarlyBird },
+          { id: "2", condition: isBudgetMaster },
+          { id: "3", condition: isSuperSaver },
+          { id: "4", condition: isNightOwl },
+          { id: "5", condition: isAnalyst },
+          { id: "6", condition: isPlanner },
+        ];
+
+        for (const rule of rules) {
+          if (rule.condition && !earnedTypes.has(rule.id)) {
+            earnedTypes.add(rule.id);
+            try {
+              await awardBadge(rule.id);
+            } catch (err) {
+              console.error(`Error awarding badge ${rule.id}:`, err);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize badges screen:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAndCheckBadges();
+  }, [refreshAllData, awardBadge]);
+
+  const earnedBadgeTypes = new Set(badges.map((b) => b.badge_type));
+
+  const mappedBadges = BADGES.map((badge) => ({
+    ...badge,
+    earned: earnedBadgeTypes.has(badge.id),
+  }));
+
+  const earnedCount = mappedBadges.filter((b) => b.earned).length;
+
+  let rank = "Novice";
+  if (earnedCount >= 5) {
+    rank = "Gold";
+  } else if (earnedCount >= 3) {
+    rank = "Silver";
+  } else if (earnedCount >= 1) {
+    rank = "Bronze";
+  }
+
+  const renderBadge = (item: (typeof mappedBadges)[0]) => (
     <View
+      key={item.id}
       style={[
         styles.badgeCard,
-        { backgroundColor: colors.white, opacity: item.earned ? 1 : 0.6 },
+        { backgroundColor: colors.card, opacity: item.earned ? 1 : 0.6 },
       ]}
     >
       <View
@@ -96,7 +161,7 @@ export default function BadgesScreen() {
       {!item.earned && (
         <View style={styles.lockedContainer}>
           <Ionicons name="lock-closed" size={14} color={colors.textSecondary} />
-          <Text style={styles.lockedText}>Locked</Text>
+          <Text style={[styles.lockedText, { color: colors.textSecondary }]}>Locked</Text>
         </View>
       )}
     </View>
@@ -118,36 +183,43 @@ export default function BadgesScreen() {
         </Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[styles.statsContainer, { backgroundColor: colors.primary }]}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>8/24</Text>
-            <Text style={styles.statLabel}>Badges</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>Gold</Text>
-            <Text style={styles.statLabel}>Rank</Text>
-          </View>
-        </View>
+          <LinearGradient
+            colors={["#8854ff", "#8fb0ff"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statsContainer}
+          >
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>
+                {earnedCount}/{BADGES.length}
+              </Text>
+              <Text style={styles.statLabel}>Badges</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{rank}</Text>
+              <Text style={styles.statLabel}>Rank</Text>
+            </View>
+          </LinearGradient>
 
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Your Achievements
-        </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Your Achievements
+          </Text>
 
-        <View style={styles.badgesWrapper}>
-          {BADGES.map((badge) => (
-            <React.Fragment key={badge.id}>
-              {renderBadge({ item: badge })}
-            </React.Fragment>
-          ))}
-        </View>
-      </ScrollView>
+          <View style={styles.badgesWrapper}>
+            {mappedBadges.map((badge) => renderBadge(badge))}
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -220,13 +292,13 @@ const styles = StyleSheet.create({
   },
   badgeCard: {
     width: "47%",
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.lg,
+    padding: 12,
+    borderRadius: 16,
     alignItems: "center",
-    elevation: 2,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     marginBottom: Theme.spacing.sm,
   },
@@ -258,5 +330,10 @@ const styles = StyleSheet.create({
   lockedText: {
     fontSize: 10,
     fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -1,8 +1,10 @@
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useBudgetStore } from "@/stores/useBudgetStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
+import { useGamificationStore } from "@/stores/useGamificationStore";
 import { useGoalStore } from "@/stores/useGoalStore";
 import { useTransactionStore } from "@/stores/useTransactionStore";
-import { Budget, Category, Goal, Transaction } from "@/types";
+import { Badge, Budget, Category, Goal, Transaction } from "@/types";
 import { useCallback } from "react";
 import { useSupabase } from "./useSupabase";
 
@@ -12,6 +14,7 @@ import { useSupabase } from "./useSupabase";
  */
 export function useDatabase() {
   const supabase = useSupabase();
+  const { user } = useAuthStore();
 
   // Store Selectors (Stable Actions)
   const setTransactions = useTransactionStore((state) => state.setTransactions);
@@ -34,6 +37,9 @@ export function useDatabase() {
   const setCategoryLoading = useCategoryStore((state) => state.setLoading);
   const isCategoryLoading = useCategoryStore((state) => state.isLoading);
 
+  const setBadges = useGamificationStore((state) => state.setBadges);
+  const addBadgeToStore = useGamificationStore((state) => state.awardBadge);
+
   // --- Transactions ---
 
   const fetchTransactions = useCallback(async () => {
@@ -42,6 +48,10 @@ export function useDatabase() {
       .from("transactions")
       .select("*")
       .order("date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching transactions:", error.message || JSON.stringify(error));
+    }
 
     if (!error && data) {
       // Map DB column names to FE field names
@@ -57,6 +67,7 @@ export function useDatabase() {
   const addTransaction = async (tx: Omit<Transaction, "id">) => {
     const dbTx = {
       ...tx,
+      user_id: user?.clerk_id,
       category_id: tx.categoryId, // Ensure mapping for insert
     };
     delete (dbTx as any).categoryId;
@@ -66,6 +77,10 @@ export function useDatabase() {
       .insert([dbTx])
       .select()
       .single();
+
+    if (error) {
+      console.error("Error adding transaction:", error.message || JSON.stringify(error));
+    }
 
     if (!error && data) {
       // Map DB column name back to FE field name so the UI can resolve the category
@@ -110,6 +125,10 @@ export function useDatabase() {
       .select()
       .single();
 
+    if (error) {
+      console.error("Error updating transaction:", error.message || JSON.stringify(error));
+    }
+
     if (!error && data) {
       // Refresh all transactions and budgets to get clean data
       await fetchTransactions();
@@ -125,6 +144,10 @@ export function useDatabase() {
     setBudgetLoading(true);
     const { data, error } = await supabase.from("budgets").select("*");
 
+    if (error) {
+      console.error("Error fetching budgets:", error.message || JSON.stringify(error));
+    }
+
     if (!error && data) {
       // Map DB column names to FE field names
       const mapped = data.map((row: any) => ({
@@ -139,6 +162,7 @@ export function useDatabase() {
   const upsertBudget = async (budget: Omit<Budget, "id"> & { id?: string }) => {
     const dbBudget = {
       ...budget,
+      user_id: user?.clerk_id,
       category_id: budget.categoryId,
     };
     delete (dbBudget as any).categoryId;
@@ -168,7 +192,7 @@ export function useDatabase() {
     const { data, error } = result;
 
     if (error) {
-      console.error("Error saving budget:", error);
+      console.error("Error saving budget:", error.message || JSON.stringify(error));
     }
 
     if (!error && data) {
@@ -194,6 +218,10 @@ export function useDatabase() {
     setGoalLoading(true);
     const { data, error } = await supabase.from("goals").select("*");
 
+    if (error) {
+      console.error("Error fetching goals:", error.message || JSON.stringify(error));
+    }
+
     if (!error && data) {
       setGoals(data as Goal[]);
     }
@@ -201,11 +229,19 @@ export function useDatabase() {
   }, [supabase, setGoals, setGoalLoading]);
 
   const addGoal = async (goal: Omit<Goal, "id">) => {
+    const dbGoal = {
+      ...goal,
+      user_id: user?.clerk_id,
+    };
     const { data, error } = await supabase
       .from("goals")
-      .insert([goal])
+      .insert([dbGoal])
       .select()
       .single();
+
+    if (error) {
+      console.error("Error adding goal:", error.message || JSON.stringify(error));
+    }
 
     if (!error && data) {
       fetchGoals();
@@ -222,11 +258,25 @@ export function useDatabase() {
       .select()
       .single();
 
+    if (error) {
+      console.error("Error updating goal:", error.message || JSON.stringify(error));
+    }
+
     if (!error && data) {
       fetchGoals();
       return data;
     }
     return null;
+  };
+
+  const deleteGoal = async (id: string) => {
+    const { error } = await supabase.from("goals").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting goal:", error.message || JSON.stringify(error));
+      return false;
+    }
+    fetchGoals();
+    return true;
   };
 
   // --- Categories ---
@@ -238,11 +288,54 @@ export function useDatabase() {
       .select("*")
       .order("sort_order", { ascending: true });
 
+    if (error) {
+      console.error("Error fetching categories:", error.message || JSON.stringify(error));
+    }
+
     if (!error && data) {
       setCategories(data as Category[]);
     }
     setCategoryLoading(false);
   }, [supabase, setCategories, setCategoryLoading]);
+
+  // --- Gamification / Badges ---
+
+  const fetchBadges = useCallback(async () => {
+    const { data, error } = await supabase.from("badges").select("*");
+
+    if (error) {
+      console.error("Error fetching badges:", error.message || JSON.stringify(error));
+    }
+
+    if (!error && data) {
+      setBadges(data as Badge[]);
+    }
+  }, [supabase, setBadges]);
+
+  const awardBadge = useCallback(async (badgeType: string) => {
+    const dbBadge = {
+      badge_type: badgeType,
+      user_id: user?.clerk_id,
+      earned_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("badges")
+      .insert([dbBadge])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error awarding badge:", error.message || JSON.stringify(error));
+      return null;
+    }
+
+    if (data) {
+      addBadgeToStore(data as Badge);
+      return data;
+    }
+    return null;
+  }, [supabase, user?.clerk_id, addBadgeToStore]);
 
   // --- Initial Data Loader ---
 
@@ -252,8 +345,9 @@ export function useDatabase() {
       fetchBudgets(),
       fetchGoals(),
       fetchCategories(),
+      fetchBadges(),
     ]);
-  }, [fetchTransactions, fetchBudgets, fetchGoals, fetchCategories]);
+  }, [fetchTransactions, fetchBudgets, fetchGoals, fetchCategories, fetchBadges]);
 
   return {
     refreshAllData,
@@ -267,7 +361,10 @@ export function useDatabase() {
     fetchGoals,
     addGoal,
     updateGoal,
+    deleteGoal,
     fetchCategories,
+    fetchBadges,
+    awardBadge,
     isLoading:
       isTxLoading || isBudgetLoading || isGoalLoading || isCategoryLoading,
   };
