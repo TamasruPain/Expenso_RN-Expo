@@ -1,56 +1,133 @@
-# Welcome to your Expo app 👋
+# 📱 Expenso
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expenso is a modern, premium, and feature-rich personal finance tracking mobile application built using **Expo**, **React Native**, **Supabase**, and **Clerk**. Designed with clean aesthetics, smooth micro-animations, glassmorphism elements, and dark mode support, it makes tracking transactions, budgets, goals, and daily streaks engaging and effortless.
 
-## Get started
+---
 
-1. Install dependencies
+## 📸 Screenshots & Showcase
 
-   ```bash
-   npm install
-   ```
+| Dashboard & Overview | Analytics & Budgets | Gamification & Badges |
+|:---:|:---:|:---:|
+| <kbd>![Dashboard Placeholder](https://via.placeholder.com/250x500.png?text=Dashboard)</kbd> | <kbd>![Analytics Placeholder](https://via.placeholder.com/250x500.png?text=Analytics)</kbd> | <kbd>![Gamification Placeholder](https://via.placeholder.com/250x500.png?text=Gamification)</kbd> |
+| **Main Dashboard** | **Detailed Analytics** | **Badges & Streaks** |
 
-2. Start the app
+<details>
+<summary>📂 Click to view more screenshots</summary>
 
-   ```bash
-   npx expo start
-   ```
+### Additional Screenshots
+| Budget Categories | Add Transaction Screen | Account Profile |
+|:---:|:---:|:---:|
+| <kbd>![Budgets Placeholder](https://via.placeholder.com/250x500.png?text=Budgets)</kbd> | <kbd>![Add Tx Placeholder](https://via.placeholder.com/250x500.png?text=Add+Transaction)</kbd> | <kbd>![Profile Placeholder](https://via.placeholder.com/250x500.png?text=Profile)</kbd> |
 
-In the output, you'll find options to open the app in a
+</details>
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## ✨ Features
 
-## Get a fresh project
+- **🔒 Secure Authentication:** Powered by **Clerk Expo** supporting modern, secure authentication flows.
+- **☁️ Real-time Cloud Sync:** Powered by **Supabase** for secure, lightning-fast data persistence.
+- **📊 Advanced Analytics:**
+  - Dynamic spending breakdown with high-fidelity Pie Charts.
+  - Interactive monthly Trend Bar Charts.
+  - Activity Heatmaps to visualize spending patterns.
+- **🎯 Financial Goals:** Create, monitor, and progress towards specific savings and expense goals.
+- **🏆 Gamification & Streaks:**
+  - Daily login and log streaks to keep you engaged.
+  - Unlockable Badges and Achievements based on financial behavior.
+  - Interactive Achievement Toast notifications.
+- **💡 Smart Budgets:** Setup monthly budgets with intuitive ring-charts and progress bars keeping you under your limits.
+- **🎨 Premium UI/UX:** Tailored HSL color systems, glassmorphism cards, micro-animations, and full theme integration.
 
-When you're ready, run:
+---
 
-```bash
-npm run reset-project
+## 🛠️ Tech Stack
+
+* **Framework:** [Expo (v55)](https://expo.dev/) & [React Native](https://reactnative.dev/)
+* **Database & Auth:** [Supabase](https://supabase.com/) & [Clerk](https://clerk.com/)
+* **State Management:** [Zustand](https://github.com/pmndrs/zustand)
+* **Date Parsing:** [date-fns](https://date-fns.org/)
+* **Icons & Components:** Expo Icons & SVG support
+* **Language:** TypeScript
+
+---
+
+## 📂 Project Structure
+
+```text
+expenso_v1/
+├── assets/             # Images, fonts, and application static assets
+├── src/
+│   ├── app/            # Expo Router file-based pages (tabs, screens, modals)
+│   ├── components/     # Reusable UI, analytics, budget, and home components
+│   ├── constants/      # Core design tokens (theme, colors, typography)
+│   ├── hooks/          # Custom React hooks (database, theme, streaks)
+│   ├── lib/            # Library setups (Clerk, Supabase, notifications)
+│   └── stores/         # Zustand global state stores (gamification, transactions)
+├── app.json            # Expo App Configuration
+├── eas.json            # EAS Build configurations
+├── package.json        # Main dependencies & scripts
+└── tsconfig.json       # TypeScript configuration
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+## 🚀 Getting Started
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Prerequisites
 
-## Learn more
+* Node.js (v20+ recommended)
+* npm (v10+ recommended)
+* Expo Go (on iOS/Android device) or Xcode/Android Studio Emulator
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Installation
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Clone the repository and install the dependencies:
 
-## Join the community
+```bash
+git clone https://github.com/TamasruPain/Expenso_RN-Expo.git
+cd expenso_v1
+npm install
+```
 
-Join our community of developers creating universal apps.
+### 2. Environment Setup
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Create a `.env` file in the root directory and add your keys:
+
+```ini
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 3. Run Locally
+
+Start the Expo Development Server:
+
+```bash
+npx expo start
+```
+
+Scan the QR code with your Expo Go app or press **`a`** (for Android) / **`i`** (for iOS) to run on an emulator.
+
+---
+
+## 📦 Building and Publishing
+
+### EAS Update
+To publish updates instantly to your users on the `preview` channel:
+```bash
+eas update --channel preview
+```
+
+### EAS Build (Android/iOS)
+To create builds for your preview profile:
+```bash
+eas build --profile preview --platform android
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/TamasruPain/Expenso_RN-Expo/issues).

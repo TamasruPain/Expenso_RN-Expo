@@ -29,7 +29,7 @@ import { SpendingSummaryCard } from "@/components/home/SpendingSummaryCard";
 import { StatsRow } from "@/components/home/StatsRow";
 import { BudgetProgressBar } from "@/components/home/BudgetProgressBar";
 import { RecentTransactions } from "@/components/home/RecentTransactions";
-import { NLPInput } from "@/components/transaction/NLPInput";
+// import { NLPInput } from "@/components/transaction/NLPInput";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -232,10 +232,10 @@ export default function HomeScreen() {
         />
 
         {/* Quick NLP Input */}
-        <NLPInput
+        {/* <NLPInput
           categories={categories}
           onAddTransaction={addTransaction}
-        />
+        /> */}
 
         {/* Recent Transactions List */}
         <RecentTransactions
