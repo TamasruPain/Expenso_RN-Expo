@@ -6,7 +6,7 @@ Expenso is a modern, premium, and feature-rich personal finance tracking mobile 
 
 ## 📸 Screenshots & Showcase
 
-<img width="554" height="276" alt="expenso - 29 April 2026 at 21 33 31" src="https://github.com/user-attachments/assets/794fbf88-6f42-4036-8fd2-e08cb8be16ea" />
+<img width="2527" height="1264" alt="Expenso(1 0 1) - 29 April 2026" src="https://github.com/user-attachments/assets/30a80be4-3585-4779-90ce-efb2b95914f0" />
 
 ---
 
