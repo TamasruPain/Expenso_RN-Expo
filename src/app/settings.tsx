@@ -2,10 +2,14 @@ import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useSecurityStore } from "@/stores/useSecurityStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { requestPermissions, scheduleDailyReminder, cancelAllNotifications } from "@/lib/notifications";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -94,8 +98,26 @@ export default function SettingsScreen() {
   const { colors } = useAppTheme();
   const { user } = useAuthStore();
   const { isBiometricsEnabled, setBiometricsEnabled } = useSecurityStore();
+  const { isNotificationsEnabled, setNotificationsEnabled, dailyReminderTime } = useSettingsStore();
 
-  const [notifications, setNotifications] = React.useState(true);
+  const handleToggleNotifications = async (value: boolean) => {
+    if (value) {
+      const granted = await requestPermissions();
+      if (granted) {
+        setNotificationsEnabled(true);
+        await scheduleDailyReminder(dailyReminderTime);
+      } else {
+        setNotificationsEnabled(false);
+        Alert.alert(
+          "Permission Denied",
+          "Please enable notifications in your device settings to receive updates and reminders."
+        );
+      }
+    } else {
+      setNotificationsEnabled(false);
+      await cancelAllNotifications();
+    }
+  };
 
   return (
     <SafeAreaView
@@ -123,8 +145,8 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             title="Push Notifications"
             type="toggle"
-            isEnabled={notifications}
-            onToggle={setNotifications}
+            isEnabled={isNotificationsEnabled}
+            onToggle={handleToggleNotifications}
           />
           <SettingItem
             icon="finger-print-outline"
@@ -171,7 +193,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="information-outline"
             title="Version"
-            value="1.0.0"
+            value={Constants.expoConfig?.version || "1.0.0"}
             type="info"
           />
         </View>

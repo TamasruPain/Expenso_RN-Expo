@@ -10,6 +10,10 @@ import { useTransactionStore } from "@/stores/useTransactionStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
+
+// Modular Budget Components
+import { BudgetOverviewRing } from "@/components/budget/BudgetOverviewRing";
+import { BudgetCategoryBar } from "@/components/budget/BudgetCategoryBar";
 import {
   ActivityIndicator,
   Alert,
@@ -160,24 +164,11 @@ export default function BudgetsScreen() {
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.progressBackground,
-                {
-                  backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${percent}%`,
-                    backgroundColor: isOver ? colors.danger : item.color,
-                  },
-                ]}
-              />
-            </View>
+            <BudgetCategoryBar
+              percent={percent}
+              isOver={isOver}
+              categoryColor={item.color}
+            />
 
             <View style={styles.cardFooter}>
               <Text
@@ -216,34 +207,12 @@ export default function BudgetsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Total Budget Summary */}
-        <LinearGradient
-          colors={isDark ? ["#3B2EAF", "#5B3EC9"] : ["#A88DFB", "#7C5CFC"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.summaryCard}
-        >
-          <Text style={styles.summaryLabel}>Total Monthly Budget</Text>
-          <Text style={styles.summaryValue}>
-            {user?.currency_symbol || "₹"} {totalBudget.toLocaleString()}
-          </Text>
-          <View style={styles.summaryFooter}>
-            <View>
-              <Text style={styles.statLabel}>Spent</Text>
-              <Text style={styles.statValue}>
-                {user?.currency_symbol || "₹"} {totalSpent.toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View>
-              <Text style={styles.statLabel}>Remaining</Text>
-              <Text style={styles.statValue}>
-                {user?.currency_symbol || "₹"}{" "}
-                {Math.max(0, totalBudget - totalSpent).toLocaleString()}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
+        {/* Total Budget Summary Ring */}
+        <BudgetOverviewRing
+          totalBudget={totalBudget}
+          totalSpent={totalSpent}
+          currencySymbol={user?.currency_symbol || "₹"}
+        />
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           Category Budgets

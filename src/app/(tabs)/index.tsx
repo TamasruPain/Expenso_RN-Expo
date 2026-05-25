@@ -24,6 +24,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Modular Dashboard Components
+import { SpendingSummaryCard } from "@/components/home/SpendingSummaryCard";
+import { StatsRow } from "@/components/home/StatsRow";
+import { BudgetProgressBar } from "@/components/home/BudgetProgressBar";
+import { RecentTransactions } from "@/components/home/RecentTransactions";
+import { NLPInput } from "@/components/transaction/NLPInput";
+
 export default function HomeScreen() {
   const router = useRouter();
   const [modalVisible, setModalVisible] = React.useState(false);
@@ -31,7 +38,7 @@ export default function HomeScreen() {
   const { transactions, isLoading: isTxLoading } = useTransactionStore();
   const { budgets } = useBudgetStore();
   const { categories } = useCategoryStore();
-  const { refreshAllData } = useDatabase();
+  const { refreshAllData, addTransaction } = useDatabase();
   const { recordActivity } = useStreaks();
 
   const { colors } = useAppTheme();
@@ -200,173 +207,50 @@ export default function HomeScreen() {
         </View>
 
         {/* Hero Card: Total Spent */}
-        <TouchableOpacity
-          activeOpacity={0.8}
+        <SpendingSummaryCard
+          totalSpent={totals.expense}
+          totalIncome={totals.income}
+          totalBalance={totals.balance}
+          currentMonthName={currentMonthName}
+          currencySymbol={user?.currency_symbol || "$"}
           onPress={() => router.push("/(tabs)/analytics")}
-        >
-          <LinearGradient
-            colors={["#8854ffff", "#8fb0ffff"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.totalSpentCard}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardLabel}>Total spent</Text>
-              <Text style={styles.cardMonth}>{currentMonthName}</Text>
-            </View>
-            <Text style={styles.totalAmount}>
-              {user?.currency_symbol || "$"} {totals.expense.toLocaleString()}
-            </Text>
-
-            <View style={styles.incomeSaveRow}>
-              <View style={styles.glassCard}>
-                <View
-                  style={[
-                    styles.glassIconContainer,
-                    { backgroundColor: "#b3ffdcff" },
-                  ]}
-                >
-                  <Ionicons name="cash" size={15} color="#059669" />
-                </View>
-                <View>
-                  <Text style={styles.glassLabel}>Income</Text>
-                  <Text style={styles.glassValue}>
-                    {user?.currency_symbol || "$"}{" "}
-                    {totals.income.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.glassCard}>
-                <View
-                  style={[
-                    styles.glassIconContainer,
-                    { backgroundColor: "#DBEAFE" },
-                  ]}
-                >
-                  <Ionicons name="wallet" size={18} color="#2563EB" />
-                </View>
-                <View>
-                  <Text style={styles.glassLabel}>Save</Text>
-                  <Text style={styles.glassValue}>
-                    {user?.currency_symbol || "$"}{" "}
-                    {totals.balance.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+        />
 
         {/* Budget Progress Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
+        <BudgetProgressBar
+          currentMonthName={currentMonthName}
+          percent={budgetSummary.percent}
           onPress={() => router.push("/(tabs)/budgets")}
-        >
-          <LinearGradient
-            colors={["#7f6effff", "#c6c1efff"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.budgetCard}
-          >
-            <View style={styles.budgetHeader}>
-              <Text style={styles.budgetText}>{currentMonthName}</Text>
-              <Text style={styles.budgetPercent}>
-                {budgetSummary.percent} %
-              </Text>
-            </View>
-            <View style={styles.progressBarBackground}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${budgetSummary.percent}%` },
-                ]}
-              />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+        />
 
         {/* Quick Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View
-              style={{
-                alignItems: "center",
-                flexDirection: "row",
-                gap: 5,
-              }}
-            >
-              <Ionicons name="trending-up" size={16} color="#FFF" />
-              <Text style={styles.statCardValue}>
-                {(totals.expense / daysElapsed).toFixed(0)}
-              </Text>
-            </View>
-            <Text style={styles.statCardLabel}>Daily Avg</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View
-              style={{
-                alignItems: "center",
-                flexDirection: "row",
-                gap: 5,
-              }}
-            >
-              <Ionicons name="receipt" size={16} color="#FFF" />
-              <Text style={styles.statCardValue}>{transactions.length}</Text>
-            </View>
-            <Text style={styles.statCardLabel}>Transactions</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View
-              style={{
-                alignItems: "center",
-                flexDirection: "row",
-                gap: 5,
-              }}
-            >
-              <Ionicons name="grid" size={16} color="#FFF" />
-              <Text style={styles.statCardValue}>{categories.length}</Text>
-            </View>
-            <Text style={styles.statCardLabel}>Categories</Text>
-          </View>
-        </View>
+        <StatsRow
+          dailyAvg={(totals.expense / daysElapsed).toFixed(0)}
+          transactionCount={transactions.length}
+          categoryCount={categories.length}
+          currencySymbol={user?.currency_symbol || "$"}
+        />
 
-        {/* Recent Transactions Header */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Recent Transactions
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
-            <Text style={[styles.viewAll, { color: colors.primary }]}>
-              View all
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Quick NLP Input */}
+        <NLPInput
+          categories={categories}
+          onAddTransaction={addTransaction}
+        />
 
-        {/* Transactions List */}
-        <View style={styles.transactionsList}>
-          {isTxLoading ? (
-            <ActivityIndicator
-              color={colors.primary}
-              style={{ marginTop: 20 }}
-            />
-          ) : recentTransactions.length > 0 ? (
-            recentTransactions.map((item) => renderTransaction(item))
-          ) : (
-            <Text
-              style={{
-                textAlign: "center",
-                color: colors.textSecondary,
-                marginTop: 20,
-              }}
-            >
-              No transactions yet.
-            </Text>
-          )}
-        </View>
+        {/* Recent Transactions List */}
+        <RecentTransactions
+          transactions={recentTransactions}
+          isLoading={isTxLoading}
+          categories={categories}
+          currencySymbol={user?.currency_symbol || "$"}
+          onViewAllPress={() => router.push("/(tabs)/transactions")}
+          onTransactionPress={(item) => {
+            router.push("/(tabs)/transactions");
+          }}
+        />
       </ScrollView>
 
-      {/* Add Button FAB Overlay (The tab bar doesn't support center FAB easily without more work, 
-          so I'll just add it to the dashboard for now like a Floating button) */}
+      {/* Add Button FAB Overlay */}
       <LinearGradient colors={["#8e5dffff", "#96afebff"]} style={styles.fab}>
         <TouchableOpacity
           activeOpacity={0.8}

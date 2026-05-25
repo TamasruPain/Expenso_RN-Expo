@@ -6,6 +6,7 @@ import { getIoniconsName } from "@/lib/icons";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useTransactionStore } from "@/stores/useTransactionStore";
+import { TransactionItem } from "@/components/transaction/TransactionItem";
 import { Transaction } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { format, isToday, isYesterday } from "date-fns";
@@ -127,79 +128,16 @@ export default function TransactionsScreen() {
   const getCurrencySymbol = () => user?.currency_symbol || "$";
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={[styles.transactionItem, { backgroundColor: colors.card }]}>
-      <TouchableOpacity
-        style={styles.transactionMain}
-        activeOpacity={0.7}
-        onPress={() => handleEdit(item)}
-      >
-        <View style={styles.transactionLeft}>
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: colors.primarySurface },
-            ]}
-          >
-            <Ionicons
-              name={getIoniconsName(item.icon)}
-              size={20}
-              color={colors.primary}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.transactionName, { color: colors.text }]}>
-              {item.note || item.categoryName}
-            </Text>
-            <Text
-              style={[styles.transactionSub, { color: colors.textSecondary }]}
-            >
-              {item.categoryName} • {format(new Date(item.date), "hh:mm a")}
-            </Text>
-          </View>
-        </View>
-        <View style={{ alignItems: "flex-end" }}>
-          <Text
-            style={[
-              styles.transactionAmount,
-              {
-                color: item.type === "income" ? colors.accent : colors.danger,
-              },
-            ]}
-          >
-            {item.type === "income" ? "+" : "-"} {getCurrencySymbol()}
-            {Math.abs(item.amount).toLocaleString()}
-          </Text>
-          <Text
-            style={[
-              styles.transactionCategory,
-              { color: colors.textSecondary },
-            ]}
-          >
-            {item.categoryName.toLowerCase()}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Action Buttons */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.primarySurface }]}
-          onPress={() => handleEdit(item)}
-        >
-          <Ionicons name="pencil" size={14} color={colors.primary} />
-          <Text style={[styles.actionText, { color: colors.primary }]}>
-            Edit
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: "#FEE2E2" }]}
-          onPress={() => handleDelete(item.id, item.note || item.categoryName)}
-        >
-          <Ionicons name="trash" size={14} color="#DC2626" />
-          <Text style={[styles.actionText, { color: "#DC2626" }]}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <TransactionItem
+      item={item}
+      categoryName={item.categoryName}
+      categoryIcon={item.icon}
+      currencySymbol={getCurrencySymbol()}
+      onPress={() => handleEdit(item)}
+      onEdit={() => handleEdit(item)}
+      onDelete={() => handleDelete(item.id, item.note || item.categoryName)}
+      showActions={true}
+    />
   );
 
   const renderSectionHeader = ({

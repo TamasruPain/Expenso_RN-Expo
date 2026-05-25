@@ -209,6 +209,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                 type="expense"
                 selectedId={selectedCategory}
                 onSelect={setSelectedCategory}
+                scrollEnabled={true}
+                style={{ flex: 1 }}
               />
             </View>
           </View>
@@ -314,7 +316,7 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
   },
   categoryGridContainer: {
-    height: 180, // Restrict height so it scrolls within the modal
+    height: 320, // Restrict height so it scrolls within the modal
   },
   saveButton: {
     marginTop: Theme.spacing.sm,

@@ -358,11 +358,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <Text style={[styles.label, { color: colors.text }]}>
                   Category
                 </Text>
-                <CategoryGrid
-                  type={type}
-                  selectedId={selectedCategory}
-                  onSelect={setSelectedCategory}
-                />
+                <View style={styles.categoryGridContainer}>
+                  <CategoryGrid
+                    type={type}
+                    selectedId={selectedCategory}
+                    onSelect={setSelectedCategory}
+                    scrollEnabled={true}
+                    style={{ flex: 1 }}
+                  />
+                </View>
               </View>
 
               {/* Note Input */}
@@ -376,7 +380,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   inputStyle={{
                     height: 80,
                     alignItems: "flex-start",
-                    paddingTop: 12,
+                    paddingTop: 8,
+                    borderColor:"white",
                   }}
                 />
               </View>
@@ -506,6 +511,9 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.size.sm,
     fontWeight: "700",
     marginBottom: Theme.spacing.sm,
+  },
+  categoryGridContainer: {
+    height: 280, // Restrict height so it scrolls within the parent scroll container
   },
   submitButton: {
     marginTop: Theme.spacing.md,

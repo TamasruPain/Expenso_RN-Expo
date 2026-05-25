@@ -5,6 +5,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDatabase } from "@/hooks/useDatabase";
 import { getIoniconsName } from "@/lib/icons";
 import { useGoalStore } from "@/stores/useGoalStore";
+import { GoalProgressRing } from "@/components/goal/GoalProgressRing";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -156,48 +157,11 @@ export default function GoalDetailScreen() {
           </Text>
         </View>
 
-        <View style={[styles.detailCard, { backgroundColor: colors.card }]}>
-          <View style={styles.progressHeader}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Progress
-            </Text>
-            <Text style={[styles.percentLarge, { color: colors.primary }]}>
-              {percent.toFixed(0)}%
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.progressBg,
-              { backgroundColor: colors.primarySurface },
-            ]}
-          >
-            <View
-              style={[
-                styles.progressFill,
-                { backgroundColor: colors.primary, width: `${percent}%` },
-              ]}
-            />
-          </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Saved
-              </Text>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                ₹{current.toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Target
-              </Text>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                ₹{target.toLocaleString()}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <GoalProgressRing
+          currentAmount={current}
+          targetAmount={target}
+          currencySymbol="₹"
+        />
 
         {percent < 100 && (
           <View style={styles.infoSection}>

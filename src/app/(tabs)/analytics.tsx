@@ -18,6 +18,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Modular Analytics Components
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { SpendingHeatmap } from "@/components/analytics/SpendingHeatmap";
+import { TrendBarChart } from "@/components/analytics/TrendBarChart";
+import { CategoryPieChart } from "@/components/analytics/CategoryPieChart";
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HEATMAP_COLS = 7;
 const HEATMAP_GAP = 6;
@@ -197,134 +203,22 @@ export default function AnalyticsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Analytics</Text>
-          <View
-            style={[
-              styles.tabBar,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : colors.primarySurface,
-              },
-            ]}
-          >
-            {(["weekly", "monthly", "yearly"] as const).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tab,
-                  activeTab === tab && {
-                    backgroundColor: colors.primary,
-                    elevation: 2,
-                  },
-                ]}
-                onPress={() => setActiveTab(tab)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color: activeTab === tab ? "#FFF" : colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <SegmentedControl
+            values={["Weekly", "Monthly", "Yearly"]}
+            selectedIndex={activeTab === "weekly" ? 0 : activeTab === "monthly" ? 1 : 2}
+            onChange={(index) => {
+              const tabs: ("weekly" | "monthly" | "yearly")[] = ["weekly", "monthly", "yearly"];
+              setActiveTab(tabs[index]);
+            }}
+          />
         </View>
 
         {/* ──────────── SPENDING HEATMAP (TOP) ──────────── */}
-        <View
-          style={[
-            styles.heatmapCard,
-            {
-              backgroundColor: colors.card,
-              shadowColor: isDark ? "#000" : "#7C5CFC",
-            },
-          ]}
-        >
-          <View style={styles.heatmapHeader}>
-            <View>
-              <Text style={[styles.heatmapTitle, { color: colors.text }]}>
-                Spending Heatmap
-              </Text>
-              <Text
-                style={[
-                  styles.heatmapSubtitle,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                {analyticsData.monthName}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.heatmapBadge,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(124,92,252,0.2)"
-                    : colors.primarySurface,
-                },
-              ]}
-            >
-              <Ionicons name="flame" size={14} color={colors.primary} />
-              <Text
-                style={[styles.heatmapBadgeText, { color: colors.primary }]}
-              >
-                {analyticsData.txCount} txns
-              </Text>
-            </View>
-          </View>
-
-          {/* Weekday labels */}
-          <View style={styles.weekdayRow}>
-            {WEEKDAY_LABELS.map((label) => (
-              <Text
-                key={label}
-                style={[styles.weekdayLabel, { color: colors.textSecondary }]}
-              >
-                {label}
-              </Text>
-            ))}
-          </View>
-
-          {/* Grid */}
-          <View style={styles.heatmapGrid}>
-            {analyticsData.heatmap.map(renderHeatmapCell)}
-          </View>
-
-          {/* Legend */}
-          <View style={styles.heatmapLegend}>
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-              Less
-            </Text>
-            {[0, 1, 2, 3, 4].map((i) => {
-              const legendColors = isDark
-                ? [
-                    "rgba(255,255,255,0.04)",
-                    "rgba(124,92,252,0.25)",
-                    "rgba(124,92,252,0.45)",
-                    "rgba(124,92,252,0.70)",
-                    "rgba(124,92,252,0.95)",
-                  ]
-                : ["#EDE8FF", "#C9B8FF", "#A78BFA", "#8B5CF6", "#7C3AED"];
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.legendBox,
-                    { backgroundColor: legendColors[i] },
-                  ]}
-                />
-              );
-            })}
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-              More
-            </Text>
-          </View>
-        </View>
+        <SpendingHeatmap
+          heatmap={analyticsData.heatmap}
+          monthName={analyticsData.monthName}
+          txCount={analyticsData.txCount}
+        />
 
         {/* ──────────── OVERVIEW CARDS ──────────── */}
         <View style={styles.overviewRow}>
@@ -365,71 +259,18 @@ export default function AnalyticsScreen() {
         </View>
 
         {/* ──────────── WEEKLY TREND BAR CHART ──────────── */}
-        <View
-          style={[
-            styles.chartCard,
-            {
-              backgroundColor: colors.card,
-              shadowColor: isDark ? "#000" : "#7C5CFC",
-            },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Last 7 Days
-          </Text>
-          <View style={styles.barChartContainer}>
-            {analyticsData.weeklyBars.map((bar, i) => {
-              const barHeight =
-                analyticsData.maxBar > 0
-                  ? Math.max(6, (bar.amount / analyticsData.maxBar) * 120)
-                  : 6;
-              const isHighest =
-                bar.amount === analyticsData.maxBar && bar.amount > 0;
-              return (
-                <View key={i} style={styles.barColumn}>
-                  <Text
-                    style={[
-                      styles.barAmountText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {bar.amount > 0
-                      ? `${user?.currency_symbol || "₹"}${bar.amount >= 1000 ? `${(bar.amount / 1000).toFixed(1)}k` : bar.amount}`
-                      : ""}
-                  </Text>
-                  <LinearGradient
-                    colors={
-                      isHighest
-                        ? ["#7C5CFC", "#A78BFA"]
-                        : isDark
-                          ? ["rgba(124,92,252,0.4)", "rgba(124,92,252,0.2)"]
-                          : [colors.primarySurface, "#D8CCFF"]
-                    }
-                    style={[
-                      styles.bar,
-                      {
-                        height: barHeight,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.barLabel,
-                      {
-                        color: isHighest
-                          ? colors.primary
-                          : colors.textSecondary,
-                        fontWeight: isHighest ? "700" : "500",
-                      },
-                    ]}
-                  >
-                    {bar.label}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        <TrendBarChart
+          weeklyBars={analyticsData.weeklyBars}
+          maxBar={analyticsData.maxBar}
+          currencySymbol={user?.currency_symbol || "₹"}
+        />
+
+        {/* ──────────── CATEGORY PIE CHART ──────────── */}
+        <CategoryPieChart
+          data={analyticsData.breakdown}
+          totalSpent={analyticsData.totalSpent}
+          currencySymbol={user?.currency_symbol || "₹"}
+        />
 
         {/* ──────────── CATEGORIES BREAKDOWN ──────────── */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>

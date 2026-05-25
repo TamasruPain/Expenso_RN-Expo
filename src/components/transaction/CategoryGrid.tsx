@@ -6,11 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 
 // Mock Categories
@@ -32,12 +34,16 @@ interface CategoryGridProps {
   selectedId?: string;
   onSelect: (id: string) => void;
   type: "expense" | "income";
+  scrollEnabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const CategoryGrid: React.FC<CategoryGridProps> = ({
   selectedId,
   onSelect,
   type,
+  scrollEnabled = false,
+  style,
 }) => {
   const { colors } = useAppTheme();
   const { categories, isLoading } = useCategoryStore();
@@ -45,11 +51,12 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   const displayCategories =
     categories.length > 0 ? categories : FALLBACK_CATEGORIES;
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItemContent = (item: any) => {
     const isSelected = selectedId === item.id;
 
     return (
       <TouchableOpacity
+        key={item.id}
         style={[
           styles.itemContainer,
           {
@@ -59,6 +66,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
           },
         ]}
         onPress={() => onSelect(item.id)}
+        activeOpacity={0.7}
       >
         <View
           style={[
@@ -89,22 +97,32 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, style]}>
         <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
+  const gridContent = (
+    <View style={styles.gridContainer}>
+      {displayCategories.map(renderItemContent)}
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={displayCategories}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={4}
-        scrollEnabled={false}
-        columnWrapperStyle={styles.row}
-      />
+    <View style={[styles.container, style]}>
+      {scrollEnabled ? (
+        <ScrollView
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: Theme.spacing.sm }}
+        >
+          {gridContent}
+        </ScrollView>
+      ) : (
+        gridContent
+      )}
     </View>
   );
 };
@@ -113,10 +131,11 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: Theme.spacing.md,
   },
-  row: {
-    justifyContent: "flex-start",
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: Theme.spacing.sm,
   },
   itemContainer: {
     width: "23%",

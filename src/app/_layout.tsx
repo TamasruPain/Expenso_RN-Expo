@@ -2,6 +2,8 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuthSync } from "@/hooks/useAuthSync";
 import { tokenCache } from "@/lib/clerk";
 import { useSecurityStore } from "@/stores/useSecurityStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { requestPermissions, scheduleDailyReminder, addNotificationClickResponseListener } from "@/lib/notifications";
 import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack } from "expo-router";
@@ -106,6 +108,27 @@ function LockedScreen() {
 function RootLayoutContent() {
   useAuthSync();
   const { colors } = useAppTheme();
+  const { isNotificationsEnabled, dailyReminderTime } = useSettingsStore();
+
+  useEffect(() => {
+    async function initNotifications() {
+      if (isNotificationsEnabled) {
+        const granted = await requestPermissions();
+        if (granted) {
+          await scheduleDailyReminder(dailyReminderTime);
+        }
+      }
+    }
+    initNotifications();
+
+    const subscription = addNotificationClickResponseListener((response) => {
+      console.log("Notification clicked:", response.notification.request.content);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isNotificationsEnabled, dailyReminderTime]);
 
   return (
     <Stack

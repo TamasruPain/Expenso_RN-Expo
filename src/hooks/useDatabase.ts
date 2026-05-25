@@ -4,7 +4,10 @@ import { useCategoryStore } from "@/stores/useCategoryStore";
 import { useGamificationStore } from "@/stores/useGamificationStore";
 import { useGoalStore } from "@/stores/useGoalStore";
 import { useTransactionStore } from "@/stores/useTransactionStore";
+import { useSettingsStore } from "@/stores/useSettingsStore";
+import { sendImmediateNotification } from "@/lib/notifications";
 import { Badge, Budget, Category, Goal, Transaction } from "@/types";
+import { BADGES } from "@/constants/badges";
 import { useCallback } from "react";
 import { useSupabase } from "./useSupabase";
 
@@ -39,6 +42,56 @@ export function useDatabase() {
 
   const setBadges = useGamificationStore((state) => state.setBadges);
   const addBadgeToStore = useGamificationStore((state) => state.awardBadge);
+
+  const checkBudgetAlert = useCallback(async (categoryId: string) => {
+    const { isNotificationsEnabled } = useSettingsStore.getState();
+    if (!isNotificationsEnabled) return;
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const { transactions } = useTransactionStore.getState();
+    const spent = transactions
+      .filter((t) => {
+        const tDate = new Date(t.date);
+        return (
+          t.type === "expense" &&
+          t.categoryId === categoryId &&
+          tDate.getMonth() === currentMonth &&
+          tDate.getFullYear() === currentYear
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const { budgets } = useBudgetStore.getState();
+    const budget = budgets.find(
+      (b) =>
+        b.categoryId === categoryId &&
+        b.month === currentMonth &&
+        b.year === currentYear
+    );
+
+    if (budget) {
+      const percentage = (spent / budget.amount) * 100;
+      const { categories } = useCategoryStore.getState();
+      const category = categories.find((c) => c.id === categoryId);
+      const categoryName = category ? category.name : "Category";
+
+      const currencySymbol = useAuthStore.getState().user?.currency_symbol || "₹";
+
+      if (percentage >= 100) {
+        await sendImmediateNotification(
+          "Budget Blown! 🛑",
+          `You have spent ${currencySymbol}${spent.toLocaleString()} of your ${currencySymbol}${budget.amount.toLocaleString()} budget for ${categoryName}.`
+        );
+      } else if (percentage >= 80) {
+        await sendImmediateNotification(
+          "Budget Warning! ⚠️",
+          `You've spent ${Math.round(percentage)}% (${currencySymbol}${spent.toLocaleString()} of ${currencySymbol}${budget.amount.toLocaleString()}) of your ${categoryName} budget.`
+        );
+      }
+    }
+  }, []);
 
   // --- Transactions ---
 
@@ -83,7 +136,6 @@ export function useDatabase() {
     }
 
     if (!error && data) {
-      // Map DB column name back to FE field name so the UI can resolve the category
       const mapped = {
         ...data,
         categoryId: (data as any).category_id || (data as any).categoryId,
@@ -91,7 +143,12 @@ export function useDatabase() {
       addTxToStore(mapped);
 
       // Refresh budgets so spent amounts update immediately
-      fetchBudgets();
+      await fetchBudgets();
+
+      // Trigger budget check if it's an expense
+      if (mapped.type === "expense") {
+        checkBudgetAlert(mapped.categoryId);
+      }
 
       return data;
     }
@@ -132,7 +189,14 @@ export function useDatabase() {
     if (!error && data) {
       // Refresh all transactions and budgets to get clean data
       await fetchTransactions();
-      fetchBudgets();
+      await fetchBudgets();
+
+      const categoryId = updates.categoryId || data.category_id || data.categoryId;
+      const type = updates.type || data.type;
+      if (categoryId && type === "expense") {
+        checkBudgetAlert(categoryId);
+      }
+
       return data;
     }
     return null;
@@ -332,6 +396,24 @@ export function useDatabase() {
 
     if (data) {
       addBadgeToStore(data as Badge);
+
+      // Trigger badge unlock notification if enabled
+      const { isNotificationsEnabled } = useSettingsStore.getState();
+      if (isNotificationsEnabled) {
+        const badgeDef = BADGES.find((b) => b.id === badgeType);
+        if (badgeDef) {
+          sendImmediateNotification(
+            "New Badge Earned! 🏆",
+            `Congratulations! You unlocked the '${badgeDef.name}' badge: ${badgeDef.description}`
+          );
+        } else {
+          sendImmediateNotification(
+            "New Badge Earned! 🏆",
+            `Congratulations! You unlocked a new achievement!`
+          );
+        }
+      }
+
       return data;
     }
     return null;

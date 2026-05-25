@@ -5,6 +5,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDatabase } from "@/hooks/useDatabase";
 import { getIoniconsName } from "@/lib/icons";
 import { useGoalStore } from "@/stores/useGoalStore";
+import { GoalCard } from "@/components/goal/GoalCard";
 import { Goal } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,70 +33,13 @@ export default function GoalsScreen() {
 
   const totalSavings = goals.reduce((sum, g) => sum + (g.current_amount || 0), 0);
 
-  const renderGoalItem = ({ item }: { item: Goal }) => {
-    const current = item.current_amount || 0;
-    const target = item.target_amount || 1; // Avoid division by zero
-    const percent = Math.min(100, (current / target) * 100);
-
-    return (
-      <TouchableOpacity
-        style={[styles.goalCard, { backgroundColor: colors.card }]}
-        onPress={() => router.push(`/goal/${item.id}`)}
-      >
-        <View style={styles.cardHeader}>
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: colors.primarySurface },
-            ]}
-          >
-            <Ionicons
-              name={getIoniconsName(item.icon || "flag")}
-              size={24}
-              color={colors.primary}
-            />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={[styles.goalName, { color: colors.text }]}>
-              {item.name}
-            </Text>
-            <Text style={[styles.goalTarget, { color: colors.textSecondary }]}>
-              Target: ₹{target.toLocaleString()}
-            </Text>
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.textSecondary}
-          />
-        </View>
-
-        <View style={styles.progressSection}>
-          <View style={styles.progressLabels}>
-            <Text style={[styles.progressText, { color: colors.text }]}>
-              ₹{current.toLocaleString()}
-            </Text>
-            <Text style={[styles.percentText, { color: colors.primary }]}>
-              {percent.toFixed(0)}%
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.progressBackground,
-              { backgroundColor: colors.primarySurface },
-            ]}
-          >
-            <View
-              style={[
-                styles.progressFill,
-                { backgroundColor: colors.primary, width: `${percent}%` },
-              ]}
-            />
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const renderGoalItem = ({ item }: { item: Goal }) => (
+    <GoalCard
+      goal={item}
+      currencySymbol="₹"
+      onPress={() => router.push(`/goal/${item.id}`)}
+    />
+  );
 
   return (
     <SafeAreaView

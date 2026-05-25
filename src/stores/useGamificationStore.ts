@@ -21,10 +21,27 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
 
   incrementStreak: () => {
     const today = new Date().toISOString().split("T")[0];
-    set((state) => ({
-      streakCount: state.streakCount + 1,
-      lastActiveDate: today,
-    }));
+    set((state) => {
+      const newStreakCount = state.streakCount + 1;
+
+      // Dynamically import notification helpers to prevent dependency cycles
+      import("@/lib/notifications").then(({ sendImmediateNotification }) => {
+        import("@/stores/useSettingsStore").then(({ useSettingsStore }) => {
+          const { isNotificationsEnabled } = useSettingsStore.getState();
+          if (isNotificationsEnabled) {
+            sendImmediateNotification(
+              "Streak Active! 🔥",
+              `You've logged activity today! Your daily log streak is now ${newStreakCount} day${newStreakCount > 1 ? "s" : ""}. Keep it up!`
+            );
+          }
+        });
+      });
+
+      return {
+        streakCount: newStreakCount,
+        lastActiveDate: today,
+      };
+    });
   },
 
   resetStreak: () => set({ streakCount: 0 }),

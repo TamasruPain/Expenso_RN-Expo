@@ -5,10 +5,13 @@ import { useDatabase } from "@/hooks/useDatabase";
 import { useBudgetStore } from "@/stores/useBudgetStore";
 import { useGamificationStore } from "@/stores/useGamificationStore";
 import { useTransactionStore } from "@/stores/useTransactionStore";
+import { BadgeItem } from "@/components/gamification/BadgeItem";
+import { StreakCard } from "@/components/gamification/StreakCard";
+import { AchievementToast } from "@/components/gamification/AchievementToast";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -28,6 +31,12 @@ export default function BadgesScreen() {
   const { budgets } = useBudgetStore();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [unlockedBadge, setUnlockedBadge] = useState<{
+    title: string;
+    description: string;
+    icon: string;
+    color: string;
+  } | null>(null);
 
   useEffect(() => {
     const initAndCheckBadges = async () => {
@@ -99,6 +108,15 @@ export default function BadgesScreen() {
             earnedTypes.add(rule.id);
             try {
               await awardBadge(rule.id);
+              const badgeDetails = BADGES.find((b) => b.id === rule.id);
+              if (badgeDetails) {
+                setUnlockedBadge({
+                  title: `Badge Unlocked! 🏆`,
+                  description: `You've earned the "${badgeDetails.name}" badge!`,
+                  icon: badgeDetails.icon,
+                  color: badgeDetails.color,
+                });
+              }
             } catch (err) {
               console.error(`Error awarding badge ${rule.id}:`, err);
             }
@@ -113,6 +131,31 @@ export default function BadgesScreen() {
 
     initAndCheckBadges();
   }, [refreshAllData, awardBadge]);
+
+  const weeklyProgress = useMemo(() => {
+    const progress = [false, false, false, false, false, false, false];
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sun, 1 = Mon, etc.
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - currentDay);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const targetDate = new Date(startOfWeek);
+      targetDate.setDate(startOfWeek.getDate() + i);
+
+      const hasTx = transactions.some((t) => {
+        const d = new Date(t.date);
+        return (
+          d.getDate() === targetDate.getDate() &&
+          d.getMonth() === targetDate.getMonth() &&
+          d.getFullYear() === targetDate.getFullYear()
+        );
+      });
+      progress[i] = hasTx;
+    }
+    return progress;
+  }, [transactions]);
 
   const earnedBadgeTypes = new Set(badges.map((b) => b.badge_type));
 
@@ -133,38 +176,14 @@ export default function BadgesScreen() {
   }
 
   const renderBadge = (item: (typeof mappedBadges)[0]) => (
-    <View
+    <BadgeItem
       key={item.id}
-      style={[
-        styles.badgeCard,
-        { backgroundColor: colors.card, opacity: item.earned ? 1 : 0.6 },
-      ]}
-    >
-      <View
-        style={[
-          styles.badgeIconContainer,
-          { backgroundColor: item.earned ? item.color : colors.primarySurface },
-        ]}
-      >
-        <Ionicons
-          name={item.icon as any}
-          size={32}
-          color={item.earned ? colors.white : colors.textSecondary}
-        />
-      </View>
-      <Text style={[styles.badgeName, { color: colors.text }]}>
-        {item.name}
-      </Text>
-      <Text style={[styles.badgeDesc, { color: colors.textSecondary }]}>
-        {item.description}
-      </Text>
-      {!item.earned && (
-        <View style={styles.lockedContainer}>
-          <Ionicons name="lock-closed" size={14} color={colors.textSecondary} />
-          <Text style={[styles.lockedText, { color: colors.textSecondary }]}>Locked</Text>
-        </View>
-      )}
-    </View>
+      name={item.name}
+      description={item.description}
+      icon={item.icon}
+      color={item.color}
+      earned={item.earned}
+    />
   );
 
   return (
@@ -211,6 +230,12 @@ export default function BadgesScreen() {
             </View>
           </LinearGradient>
 
+          {/* Daily Logging Streak Card */}
+          <StreakCard
+            streakCount={streakCount}
+            weeklyProgress={weeklyProgress}
+          />
+
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Your Achievements
           </Text>
@@ -220,6 +245,15 @@ export default function BadgesScreen() {
           </View>
         </ScrollView>
       )}
+
+      <AchievementToast
+        visible={unlockedBadge !== null}
+        onClose={() => setUnlockedBadge(null)}
+        title={unlockedBadge?.title || ""}
+        description={unlockedBadge?.description || ""}
+        iconName={unlockedBadge?.icon}
+        iconColor={unlockedBadge?.color}
+      />
     </SafeAreaView>
   );
 }

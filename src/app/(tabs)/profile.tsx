@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 import React, { useMemo } from "react";
 import {
   Alert,
@@ -456,7 +457,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-            Expenso v1.0.0
+            Expenso v{Constants.expoConfig?.version || "1.0.0"}
           </Text>
         </View>
       </ScrollView>
