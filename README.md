@@ -6,20 +6,7 @@ Expenso is a modern, premium, and feature-rich personal finance tracking mobile 
 
 ## 📸 Screenshots & Showcase
 
-| Dashboard & Overview | Analytics & Budgets | Gamification & Badges |
-|:---:|:---:|:---:|
-| <kbd>![Dashboard Placeholder](https://via.placeholder.com/250x500.png?text=Dashboard)</kbd> | <kbd>![Analytics Placeholder](https://via.placeholder.com/250x500.png?text=Analytics)</kbd> | <kbd>![Gamification Placeholder](https://via.placeholder.com/250x500.png?text=Gamification)</kbd> |
-| **Main Dashboard** | **Detailed Analytics** | **Badges & Streaks** |
-
-<details>
-<summary>📂 Click to view more screenshots</summary>
-
-### Additional Screenshots
-| Budget Categories | Add Transaction Screen | Account Profile |
-|:---:|:---:|:---:|
-| <kbd>![Budgets Placeholder](https://via.placeholder.com/250x500.png?text=Budgets)</kbd> | <kbd>![Add Tx Placeholder](https://via.placeholder.com/250x500.png?text=Add+Transaction)</kbd> | <kbd>![Profile Placeholder](https://via.placeholder.com/250x500.png?text=Profile)</kbd> |
-
-</details>
+<img width="554" height="276" alt="expenso - 29 April 2026 at 21 33 31" src="https://github.com/user-attachments/assets/794fbf88-6f42-4036-8fd2-e08cb8be16ea" />
 
 ---
 
